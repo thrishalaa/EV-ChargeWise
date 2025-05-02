@@ -1,0 +1,401 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/payment_service.dart';
+import '../services/booking_service.dart';
+import '../models/booking.dart'; // Removed import '../models/payment.dart'
+import 'package:intl/intl.dart';
+import 'dart:async';
+
+class PaymentStatusScreen extends StatefulWidget {
+  final String orderId;
+  final int bookingId;
+  final int paymentId;
+  final bool isCancelled;
+
+  const PaymentStatusScreen({
+    super.key,
+    required this.orderId,
+    required this.bookingId,
+    required this.paymentId,
+    this.isCancelled = false,
+  });
+
+  @override
+  PaymentStatusScreenState createState() => PaymentStatusScreenState();
+}
+
+class PaymentStatusScreenState extends State<PaymentStatusScreen> {
+  bool _isLoading = true;
+  String _paymentStatus = 'PENDING';
+  String _message = '';
+  Booking? _booking;
+  Timer? _pollTimer;
+  int _pollAttempts = 0;
+  final int _maxPollAttempts = 5;
+
+  @override
+  void initState() {
+    super.initState();
+    _processPayment();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _processPayment() async {
+    if (widget.isCancelled) {
+      _handleCancelledPayment();
+    } else {
+      _handleReturnedPayment();
+    }
+  }
+
+  Future<void> _handleReturnedPayment() async {
+    setState(() {
+      _isLoading = true;
+      _message = 'Processing your payment...';
+    });
+
+    try {
+      final paymentService = Provider.of<PaymentService>(
+        context,
+        listen: false,
+      );
+
+      // Handle the payment return
+      final result = await paymentService.handlePaymentReturn(
+        orderId: widget.orderId,
+        bookingId: widget.bookingId,
+        paymentId: widget.paymentId,
+      );
+
+      if (result['success']) {
+        // Payment processed successfully
+        setState(() {
+          _paymentStatus = result['paymentStatus'];
+          _message = result['message'];
+          _isLoading = false;
+        });
+
+        // Load booking details
+        _fetchBookingDetails();
+      } else {
+        // Payment processing failed but might be pending
+        setState(() {
+          _paymentStatus = result['paymentStatus'];
+          _message = result['message'];
+          _isLoading = false;
+        });
+
+        // Start polling for payment status
+        _startPollingPaymentStatus();
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _message = 'Error processing payment: $e';
+        _paymentStatus = 'ERROR';
+      });
+    }
+  }
+
+  Future<void> _handleCancelledPayment() async {
+    setState(() {
+      _isLoading = true;
+      _message = 'Processing cancellation...';
+    });
+
+    try {
+      final paymentService = Provider.of<PaymentService>(
+        context,
+        listen: false,
+      );
+
+      // Handle the payment cancellation
+      final result = await paymentService.handlePaymentCancellation(
+        widget.bookingId,
+      );
+
+      setState(() {
+        _isLoading = false;
+        _paymentStatus = result['paymentStatus'];
+        _message = result['message'];
+      });
+
+      // Load booking details (still in pending state)
+      _fetchBookingDetails();
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _message = 'Error handling cancellation: $e';
+        _paymentStatus = 'ERROR';
+      });
+    }
+  }
+
+  void _startPollingPaymentStatus() {
+    // Poll every 3 seconds
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      _pollAttempts++;
+
+      if (_pollAttempts > _maxPollAttempts) {
+        timer.cancel();
+        setState(() {
+          _message =
+              'Payment processing is taking longer than expected. Please check your booking status later.';
+        });
+        return;
+      }
+
+      try {
+        final paymentService = Provider.of<PaymentService>(
+          context,
+          listen: false,
+        );
+        final payment = await paymentService.getPaymentStatus(widget.paymentId);
+
+        if (payment != null) {
+          setState(() {
+            _paymentStatus = payment.status ?? 'UNKNOWN';
+          });
+
+          // If payment is completed, stop polling
+          if (_paymentStatus == 'COMPLETED') {
+            timer.cancel();
+            setState(() {
+              _message = 'Payment completed successfully!';
+            });
+            _fetchBookingDetails();
+          }
+        }
+      } catch (e) {
+        print('Error polling payment status: $e');
+      }
+    });
+  }
+
+  Future<void> _fetchBookingDetails() async {
+    try {
+      final bookingService = Provider.of<BookingService>(
+        context,
+        listen: false,
+      );
+      // Note: BookingService does not have getBooking method, so this will fail.
+      // You may need to implement getBooking in BookingService or adjust this call.
+      final booking = await bookingService.getBooking(widget.bookingId);
+
+      if (mounted) {
+        setState(() {
+          _booking = booking;
+        });
+      }
+    } catch (e) {
+      print('Error fetching booking details: $e');
+    }
+  }
+
+  Future<void> _retryPayment() async {
+    // Get the booking details first
+    if (_booking == null) {
+      await _fetchBookingDetails();
+    }
+
+    if (_booking == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot retry payment: booking details not available'),
+        ),
+      );
+      return;
+    }
+
+    // Navigate back to bookings and show the payment option
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      '/bookings',
+      (route) => false, // Clear all routes
+    );
+  }
+
+  Widget _buildPaymentStatusIcon() {
+    IconData icon;
+    Color color;
+
+    switch (_paymentStatus) {
+      case 'COMPLETED':
+        icon = Icons.check_circle;
+        color = Colors.green;
+        break;
+      case 'CANCELLED':
+        icon = Icons.cancel;
+        color = Colors.red;
+        break;
+      case 'PENDING':
+        icon = Icons.access_time;
+        color = Colors.orange;
+        break;
+      case 'ERROR':
+        icon = Icons.error;
+        color = Colors.red;
+        break;
+      default:
+        icon = Icons.help;
+        color = Colors.grey;
+    }
+
+    return Column(
+      children: [
+        Icon(icon, size: 80, color: color),
+        const SizedBox(height: 16),
+        Text(
+          _paymentStatus,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBookingDetails() {
+    if (_booking == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      margin: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Booking Details',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            _buildDetailRow(
+              'Station',
+              _booking!.stationName ?? 'Unknown Station',
+            ),
+            _buildDetailRow(
+              'Date',
+              _booking!.bookingDate != null
+                  ? DateFormat('MMM dd, yyyy').format(_booking!.bookingDate!)
+                  : 'N/A',
+            ),
+            _buildDetailRow(
+              'Time',
+              _booking!.startTime != null
+                  ? DateFormat('hh:mm a').format(_booking!.startTime!)
+                  : 'N/A',
+            ),
+            _buildDetailRow(
+              'Duration',
+              '${_booking!.durationMinutes ?? 0} minutes',
+            ),
+            _buildDetailRow('Status', _booking!.status ?? 'Unknown'),
+            if (_booking!.totalCost != null)
+              _buildDetailRow(
+                'Amount',
+                '₹${_booking!.totalCost!.toStringAsFixed(2)}',
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Payment Status')),
+      body:
+          _isLoading
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 24),
+                    Text(
+                      _message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+              )
+              : SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
+                      _buildPaymentStatusIcon(),
+                      const SizedBox(height: 24),
+                      Text(
+                        _message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 32),
+                      _buildBookingDetails(),
+                      const SizedBox(height: 32),
+                      if (_paymentStatus == 'CANCELLED' ||
+                          _paymentStatus == 'ERROR')
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.replay),
+                          label: const Text('Retry Payment'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 12,
+                            ),
+                          ),
+                          onPressed: _retryPayment,
+                        ),
+                      const SizedBox(height: 16),
+                      TextButton.icon(
+                        icon: const Icon(Icons.home),
+                        label: const Text('Back to Home'),
+                        onPressed: () {
+                          Navigator.of(
+                            context,
+                          ).pushNamedAndRemoveUntil('/home', (route) => false);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+    );
+  }
+}
