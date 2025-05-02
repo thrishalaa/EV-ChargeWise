@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../models/station.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'payment_webview_screen.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -149,12 +150,29 @@ class BookingsScreenState extends State<BookingsScreen>
                 return booking;
               }).toList();
 
-          // Sort bookings by date, with most recent first
-          _bookings.sort(
-            (a, b) => (b.bookingDate ?? DateTime.now()).compareTo(
+          // Sort bookings by status priority and then by date descending
+          final statusPriority = {
+            'active': 1,
+            'completed': 1,
+            'pending': 2,
+            'cancelled': 3,
+          };
+
+          int getStatusPriority(String? status) {
+            if (status == null) return 4;
+            return statusPriority[status.toLowerCase()] ?? 4;
+          }
+
+          _bookings.sort((a, b) {
+            final aPriority = getStatusPriority(a.status);
+            final bPriority = getStatusPriority(b.status);
+            if (aPriority != bPriority) {
+              return aPriority.compareTo(bPriority);
+            }
+            return (b.bookingDate ?? DateTime.now()).compareTo(
               a.bookingDate ?? DateTime.now(),
-            ),
-          );
+            );
+          });
         });
       }
     } catch (e) {
@@ -436,12 +454,21 @@ class BookingsScreenState extends State<BookingsScreen>
                         final approvalLink =
                             response['payment']['approval_link'];
                         if (approvalLink != null) {
-                          // Launch the payment link in a browser
+                          // Launch the payment link in a webview screen
                           try {
-                            final Uri url = Uri.parse(approvalLink);
-                            await launchUrl(
-                              url,
-                              mode: LaunchMode.externalApplication,
+                            final bookingId = response['booking']['id'];
+                            final paymentId = response['payment']['id'];
+                            final orderId = response['payment']['order_id'];
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => PaymentWebViewScreen(
+                                      approvalUrl: approvalLink,
+                                      bookingId: bookingId,
+                                      paymentId: paymentId,
+                                      orderId: orderId,
+                                    ),
+                              ),
                             );
                           } catch (e) {
                             // If we can't launch, show dialog
@@ -813,12 +840,18 @@ class BookingsScreenState extends State<BookingsScreen>
                     ),
                     _buildDetailRow(
                       'Duration',
-                      '${booking.durationMinutes ?? 0} minutes',
+                      booking.durationMinutes != null &&
+                              booking.durationMinutes! > 0
+                          ? '${booking.durationMinutes} minutes'
+                          : 'N/A',
                       Icons.timer,
                     ),
                     _buildDetailRow(
                       'Payment Status',
-                      bookingWithPayment.payment?.status ?? 'Not paid',
+                      bookingWithPayment.payment?.status != null &&
+                              bookingWithPayment.payment!.status!.isNotEmpty
+                          ? bookingWithPayment.payment!.status!
+                          : 'Not paid',
                       Icons.payment,
                     ),
                     if (bookingWithPayment.payment != null)
@@ -832,18 +865,21 @@ class BookingsScreenState extends State<BookingsScreen>
               ),
             ),
             actions: [
-              // Fix: Add cancel button for all active and pending bookings
-              TextButton.icon(
-                icon: const Icon(Icons.cancel, color: Colors.red),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _showCancellationConfirmDialog(booking.id);
-                },
-                label: const Text('Cancel Booking'),
-              ),
+              // Remove cancel and complete payment buttons for completed bookings
+              if (booking.status != 'cancelled' &&
+                  booking.status != 'completed')
+                TextButton.icon(
+                  icon: const Icon(Icons.cancel, color: Colors.red),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _showCancellationConfirmDialog(booking.id);
+                  },
+                  label: const Text('Cancel Booking'),
+                ),
               if (bookingWithPayment.payment?.status != 'COMPLETED' &&
-                  booking.status != 'cancelled')
+                  booking.status != 'cancelled' &&
+                  booking.status != 'completed')
                 TextButton.icon(
                   icon: const Icon(Icons.payment, color: Colors.green),
                   style: TextButton.styleFrom(foregroundColor: Colors.green),
@@ -922,7 +958,13 @@ class BookingsScreenState extends State<BookingsScreen>
             final Uri url = Uri.parse(
               bookingWithPayment.payment!.approvalLink!,
             );
-            await launchUrl(url, mode: LaunchMode.externalApplication);
+            final launched = await launchUrl(
+              url,
+              mode: LaunchMode.externalApplication,
+            );
+            if (!launched) {
+              throw Exception('Could not launch payment URL');
+            }
             return;
           }
         } catch (e) {
@@ -931,37 +973,38 @@ class BookingsScreenState extends State<BookingsScreen>
         }
       } else {
         // Use existing payment link if available
-        await launchUrl(
+        final launched = await launchUrl(
           Uri.parse(booking.paymentLink!),
           mode: LaunchMode.externalApplication,
         );
+        if (!launched) {
+          throw Exception('Could not launch payment URL');
+        }
         return;
       }
     } catch (e) {
       print('Error launching payment link: $e');
-    }
-
-    // If no payment link is available, show placeholder dialog
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Payment'),
-          content: Text(
-            'Unable to access payment link for booking #${booking.id}. Please try again later or contact support.',
-          ),
-          actions: [
-            TextButton(
-              child: const Text('Close'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Payment Error'),
+            content: Text(
+              'Unable to access payment link for booking #${booking.id}. Please try again later or contact support.\nError: $e',
             ),
-          ],
-        );
-      },
-    );
+            actions: [
+              TextButton(
+                child: const Text('Close'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   Widget _buildDetailRow(String label, String value, IconData icon) {

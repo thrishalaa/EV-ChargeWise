@@ -79,7 +79,10 @@ class StationService {
 
   Future<List<Station>> getRecentBookedStations() async {
     try {
-      final response = await apiService.get('/stations/recent');
+      final response = await apiService.get(
+        '/stations/recent',
+        requiresAuth: true,
+      );
 
       try {
         final List<dynamic> stationsJson = response;

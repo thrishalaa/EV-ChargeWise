@@ -54,6 +54,10 @@ class Booking {
   }
 
   factory Booking.fromJson(Map<String, dynamic> json) {
+    String? status = json['status'];
+    if (status == 'paid') {
+      status = 'completed';
+    }
     return Booking(
       id: json['id'],
       userId: json['user_id'],
@@ -70,7 +74,7 @@ class Booking {
               ? DateTime.parse(json['booking_date'])
               : null,
       durationMinutes: json['duration_minutes'],
-      status: json['status'],
+      status: status,
       totalCost:
           json['total_cost'] != null
               ? (json['total_cost'] as num).toDouble()

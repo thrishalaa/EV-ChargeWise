@@ -69,12 +69,11 @@ class PaymentService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/payments/$paymentId/capture'),
+        Uri.parse('$baseUrl/payments/capture-order/$orderId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $authToken',
         },
-        body: jsonEncode({'order_id': orderId}),
       );
 
       if (response.statusCode == 200) {
