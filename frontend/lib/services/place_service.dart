@@ -43,7 +43,10 @@ class PlaceService {
       final List<dynamic> data = json.decode(response.body);
       return data.map((item) => Place.fromJson(item)).toList();
     } else {
-      throw Exception('Failed to fetch place suggestions');
+      // Throw detailed error with status code and response body for better diagnostics
+      throw Exception(
+        'Failed to fetch place suggestions. Status code: ${response.statusCode}, Body: ${response.body}',
+      );
     }
   }
 }

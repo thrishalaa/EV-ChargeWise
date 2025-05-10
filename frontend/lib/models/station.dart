@@ -56,6 +56,7 @@ class Station {
   final double latitude;
   final double longitude;
   final bool isAvailable;
+  final bool maintenance;
   final List<ChargingConfig> chargingConfigs;
   final double? distance;
   final List<BookingInfo>? bookings;
@@ -66,6 +67,7 @@ class Station {
     required this.latitude,
     required this.longitude,
     required this.isAvailable,
+    required this.maintenance,
     required this.chargingConfigs,
     this.distance,
     this.bookings,
@@ -90,6 +92,7 @@ class Station {
       latitude: json['latitude'],
       longitude: json['longitude'],
       isAvailable: json['is_available'],
+      maintenance: json['maintenance'] ?? false,
       chargingConfigs: configs,
       distance: json['distance']?.toDouble(),
       bookings: bookings,

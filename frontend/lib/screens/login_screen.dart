@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
+import '../services/payment_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -158,9 +159,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
       try {
         final authService = Provider.of<AuthService>(context, listen: false);
+        final paymentService = Provider.of<PaymentService>(
+          context,
+          listen: false,
+        );
         final success = await authService.login(_username, _password);
 
         if (success) {
+          // Set auth token in PaymentService after successful login
+          if (authService.token != null) {
+            paymentService.setAuthToken(authService.token!);
+          }
+
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => HomeScreen()),
           );

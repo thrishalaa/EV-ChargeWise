@@ -71,12 +71,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
     // Setup focus listeners
     _startFocusNode.addListener(() {
+      if (!mounted) return;
       setState(() {
         _isStartFocused = _startFocusNode.hasFocus;
         if (!_isStartFocused && _startPlaceSuggestions.isNotEmpty) {
           // Add a delay to allow tapping on suggestion
           Future.delayed(const Duration(milliseconds: 200), () {
-            if (!_startFocusNode.hasFocus) {
+            if (!_startFocusNode.hasFocus && mounted) {
               setState(() {
                 _startPlaceSuggestions = [];
               });
@@ -87,12 +88,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     });
 
     _endFocusNode.addListener(() {
+      if (!mounted) return;
       setState(() {
         _isEndFocused = _endFocusNode.hasFocus;
         if (!_isEndFocused && _endPlaceSuggestions.isNotEmpty) {
           // Add a delay to allow tapping on suggestion
           Future.delayed(const Duration(milliseconds: 200), () {
-            if (!_endFocusNode.hasFocus) {
+            if (!_endFocusNode.hasFocus && mounted) {
               setState(() {
                 _endPlaceSuggestions = [];
               });

@@ -39,31 +39,6 @@ def get_payment_details(
         "booking_id": payment.booking_id
     }
 
-@router.post("/verify-payment/{payment_id}")
-def verify_payment(
-    payment_id: int,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    current_user: Union[User, Admin] = Depends(get_current_user)  # Enforce authentication
-):
-    # Fetch payment from the database
-    payment = db.query(Payment).filter(Payment.id == payment_id).first()
-    
-    if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-
-    # Ensure only the user who made the payment or an admin can verify it
-    if isinstance(current_user, User) and payment.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You are not authorized to verify this payment")
-
-    # Queue the payment verification task
-    background_tasks.add_task(check_payment_status, payment.id, payment.order_id)
-
-    return {
-        "message": "Payment verification queued",
-        "payment_id": payment_id,
-        "order_id": payment.order_id
-    }
 
 @router.post("/capture-order/{order_id}")
 def capture_order(
@@ -108,6 +83,65 @@ def capture_order(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/verify-order/{order_id}")
+def verify_paypalorder(
+    order_id: str,
+    db: Session = Depends(get_db),
+    current_user: Union[User, Admin] = Depends(get_current_user),
+):
+    # Debug the input
+    print(f"Verifying order with ID: {order_id}")
+    
+    # Fetch payment from DB using PayPal order ID with more careful comparison
+    # Try case-insensitive comparison
+    payment = db.query(Payment).filter(
+        Payment.order_id.ilike(f"%{order_id}%")
+    ).first()
+    
+    # If not found, try with exact match
+    if not payment:
+        print(f"Payment not found with ilike match, trying exact match for: {order_id}")
+        payment = db.query(Payment).filter(Payment.order_id == order_id).first()
+        
+    # If still not found, log all available order IDs for debugging
+    if not payment:
+        all_payments = db.query(Payment).all()
+        print(f"Payment not found. Available order IDs in database:")
+        for p in all_payments:
+            print(f"  - '{p.order_id}'")
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    # Only allow the user who made the payment or an admin
+    if isinstance(current_user, User) and payment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You are not authorized to verify this payment")
+
+    # Use your PayPal utility to verify the order
+    paypal_service = PayPalService() # Make sure this is properly initialized
+    try:
+        order_details = paypal_service.verify_order(order_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to verify order: {str(e)}")
+
+    order_status = order_details.get("status")
+
+    # Update payment status in DB if payment is completed
+    if order_status == "COMPLETED":
+        payment.status = "COMPLETED"  # Or "paid", depending on your schema
+        db.commit()
+        return {
+            "message": "Payment verified successfully",
+            "order_status": order_status,
+            "payment_id": payment.id,
+            "verified": True
+        }
+    else:
+        return {
+            "message": f"Order is not completed yet (status: {order_status})",
+            "order_status": order_status,
+            "payment_id": payment.id,
+            "verified": False
+        }
 
 # Webhook handler for PayPal payment status updates
 @router.post("/webhook/paypal")

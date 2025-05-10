@@ -1,12 +1,16 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:io';
+import 'dart:async'; // Import for TimeoutException
 
 class ApiService {
   late final String baseUrl;
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   String? _token;
+
+  // Default timeout duration - increase this value based on your backend's performance
+  final Duration defaultTimeout = const Duration(seconds: 1000);
 
   ApiService() {
     // Use environment variable or default to localhost
@@ -17,21 +21,18 @@ class ApiService {
   Future<String?> get token async {
     if (_token != null) return _token;
 
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('auth_token');
+    _token = await _secureStorage.read(key: 'auth_token');
     return _token;
   }
 
   Future<void> setToken(String token) async {
     _token = token;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
+    await _secureStorage.write(key: 'auth_token', value: token);
   }
 
   Future<void> clearToken() async {
     _token = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
+    await _secureStorage.delete(key: 'auth_token');
   }
 
   // Add headers including auth token
@@ -49,13 +50,23 @@ class ApiService {
   }
 
   // Generic HTTP methods
-  Future<dynamic> get(String endpoint, {bool requiresAuth = true}) async {
+  Future<dynamic> get(
+    String endpoint, {
+    bool requiresAuth = true,
+    Duration? timeout,
+  }) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: await _getHeaders(requiresAuth: requiresAuth),
-      );
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: await _getHeaders(requiresAuth: requiresAuth),
+          )
+          .timeout(timeout ?? defaultTimeout);
       return _processResponse(response);
+    } on TimeoutException {
+      throw Exception(
+        'Request timed out. Server might be slow or unreachable.',
+      );
     } catch (e) {
       throw Exception('Network error: $e');
     }
@@ -65,14 +76,21 @@ class ApiService {
     String endpoint, {
     dynamic body,
     bool requiresAuth = true,
+    Duration? timeout,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: await _getHeaders(requiresAuth: requiresAuth),
-        body: body != null ? jsonEncode(body) : null,
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: await _getHeaders(requiresAuth: requiresAuth),
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(timeout ?? defaultTimeout);
       return _processResponse(response);
+    } on TimeoutException {
+      throw Exception(
+        'Request timed out. Server might be slow or unreachable.',
+      );
     } catch (e) {
       throw Exception('Network error: $e');
     }
@@ -82,26 +100,43 @@ class ApiService {
     String endpoint, {
     dynamic body,
     bool requiresAuth = true,
+    Duration? timeout,
   }) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: await _getHeaders(requiresAuth: requiresAuth),
-        body: body != null ? jsonEncode(body) : null,
-      );
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: await _getHeaders(requiresAuth: requiresAuth),
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(timeout ?? defaultTimeout);
       return _processResponse(response);
+    } on TimeoutException {
+      throw Exception(
+        'Request timed out. Server might be slow or unreachable.',
+      );
     } catch (e) {
       throw Exception('Network error: $e');
     }
   }
 
-  Future<dynamic> delete(String endpoint, {bool requiresAuth = true}) async {
+  Future<dynamic> delete(
+    String endpoint, {
+    bool requiresAuth = true,
+    Duration? timeout,
+  }) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: await _getHeaders(requiresAuth: requiresAuth),
-      );
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: await _getHeaders(requiresAuth: requiresAuth),
+          )
+          .timeout(timeout ?? defaultTimeout);
       return _processResponse(response);
+    } on TimeoutException {
+      throw Exception(
+        'Request timed out. Server might be slow or unreachable.',
+      );
     } catch (e) {
       throw Exception('Network error: $e');
     }
@@ -137,26 +172,33 @@ class ApiService {
   }
 
   // Auth specific methods
-  Future<Map<String, dynamic>> login(String username, String password) async {
+  Future<Map<String, dynamic>> login(
+    String username,
+    String password, {
+    Duration? timeout,
+  }) async {
     final headers = {'Content-Type': 'application/x-www-form-urlencoded'};
-
     final body = 'username=$username&password=$password';
 
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/token'),
-      headers: headers,
-      body: body,
-    );
+    try {
+      final response = await http
+          .post(Uri.parse('$baseUrl/token'), headers: headers, body: body)
+          .timeout(timeout ?? defaultTimeout);
 
-    final statusCode = response.statusCode;
-    final responseBody = jsonDecode(response.body);
+      final statusCode = response.statusCode;
+      final responseBody = jsonDecode(response.body);
 
-    if (statusCode >= 200 && statusCode < 300) {
-      await setToken(responseBody['access_token']);
-      return responseBody;
-    } else {
-      final error = responseBody['detail'] ?? 'Login failed';
-      throw Exception(error);
+      if (statusCode >= 200 && statusCode < 300) {
+        await setToken(responseBody['access_token']);
+        return responseBody;
+      } else {
+        final error = responseBody['detail'] ?? 'Login failed';
+        throw Exception(error);
+      }
+    } on TimeoutException {
+      throw Exception('Login timed out. Server might be slow or unreachable.');
+    } catch (e) {
+      throw Exception('Login failed: $e');
     }
   }
 
@@ -164,12 +206,13 @@ class ApiService {
     await clearToken();
   }
 
-  // New method to call route optimization API
+  // Route optimization API
   Future<dynamic> optimizeRoute({
     required double startLatitude,
     required double startLongitude,
     required double endLatitude,
     required double endLongitude,
+    Duration? timeout,
   }) async {
     final body = {
       "start_latitude": startLatitude,
@@ -178,7 +221,10 @@ class ApiService {
       "end_longitude": endLongitude,
     };
 
-    // Adjusted endpoint to include /routes prefix as per backend main.py
-    return await post('/routes/optimize', body: body);
+    return await post(
+      '/routes/optimize',
+      body: body,
+      timeout: timeout ?? defaultTimeout,
+    );
   }
 }

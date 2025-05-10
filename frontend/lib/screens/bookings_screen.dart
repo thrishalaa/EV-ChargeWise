@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/booking_service.dart';
 import '../services/station_service.dart';
+import '../services/payment_service.dart';
 import '../models/booking.dart';
 import 'package:intl/intl.dart';
 import '../models/station.dart';
@@ -425,9 +426,15 @@ class BookingsScreenState extends State<BookingsScreen>
                       selectedTime!.minute,
                     );
 
+                    final currentContext = context;
+
                     try {
                       final bookingService = Provider.of<BookingService>(
-                        context,
+                        currentContext,
+                        listen: false,
+                      );
+                      final paymentService = Provider.of<PaymentService>(
+                        currentContext,
                         listen: false,
                       );
                       // Calculate end_time and total_cost
@@ -448,7 +455,9 @@ class BookingsScreenState extends State<BookingsScreen>
                         'total_cost': totalCost,
                       });
 
-                      Navigator.of(context).pop();
+                      if (!mounted) return;
+
+                      Navigator.of(currentContext).pop();
 
                       if (response != null && response['payment'] != null) {
                         final approvalLink =
@@ -459,7 +468,7 @@ class BookingsScreenState extends State<BookingsScreen>
                             final bookingId = response['booking']['id'];
                             final paymentId = response['payment']['id'];
                             final orderId = response['payment']['order_id'];
-                            Navigator.of(context).push(
+                            Navigator.of(currentContext).push(
                               MaterialPageRoute(
                                 builder:
                                     (context) => PaymentWebViewScreen(
@@ -467,6 +476,7 @@ class BookingsScreenState extends State<BookingsScreen>
                                       bookingId: bookingId,
                                       paymentId: paymentId,
                                       orderId: orderId,
+                                      paymentService: paymentService,
                                     ),
                               ),
                             );
@@ -474,7 +484,7 @@ class BookingsScreenState extends State<BookingsScreen>
                             // If we can't launch, show dialog
                             if (mounted) {
                               showDialog(
-                                context: context,
+                                context: currentContext,
                                 builder: (context) {
                                   return AlertDialog(
                                     title: const Text('Complete Payment'),
@@ -498,7 +508,7 @@ class BookingsScreenState extends State<BookingsScreen>
                       }
 
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(currentContext).showSnackBar(
                           const SnackBar(
                             content: Text(
                               'Booking successful! Refreshing your bookings...',
@@ -512,7 +522,7 @@ class BookingsScreenState extends State<BookingsScreen>
                       await _fetchBookings();
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(currentContext).showSnackBar(
                           SnackBar(
                             content: Text(
                               'Failed to create booking: ${e.toString()}',

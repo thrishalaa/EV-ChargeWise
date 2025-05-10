@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/payment_service.dart';
 import '../services/booking_service.dart';
-import '../models/booking.dart'; // Removed import '../models/payment.dart'
+import '../models/booking.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 
@@ -49,56 +49,89 @@ class PaymentStatusScreenState extends State<PaymentStatusScreen> {
     if (widget.isCancelled) {
       _handleCancelledPayment();
     } else {
-      _handleReturnedPayment();
+      // Instead of handling the payment return, we'll just check the status
+      // since the capture was already handled in PaymentWebViewScreen
+      _checkPaymentStatus();
     }
   }
 
-  Future<void> _handleReturnedPayment() async {
+  Future<void> _checkPaymentStatus() async {
     setState(() {
       _isLoading = true;
-      _message = 'Processing your payment...';
+      _message = 'Checking payment status...';
     });
 
-    try {
-      final paymentService = Provider.of<PaymentService>(
-        context,
-        listen: false,
-      );
+    int retryCount = 0;
+    const int maxRetries = 5;
+    const Duration retryDelay = Duration(seconds: 3);
 
-      // Handle the payment return
-      final result = await paymentService.handlePaymentReturn(
-        orderId: widget.orderId,
-        bookingId: widget.bookingId,
-        paymentId: widget.paymentId,
-      );
+    while (retryCount < maxRetries) {
+      try {
+        final paymentService = Provider.of<PaymentService>(
+          context,
+          listen: false,
+        );
 
-      if (result['success']) {
-        // Payment processed successfully
-        setState(() {
-          _paymentStatus = result['paymentStatus'];
-          _message = result['message'];
-          _isLoading = false;
-        });
+        // Use new verifyOrderByOrderId method instead of getPaymentStatus
+        final verifyResult = await paymentService.verifyOrderByOrderId(
+          widget.orderId,
+        );
+        print(verifyResult);
 
-        // Load booking details
-        _fetchBookingDetails();
-      } else {
-        // Payment processing failed but might be pending
-        setState(() {
-          _paymentStatus = result['paymentStatus'];
-          _message = result['message'];
-          _isLoading = false;
-        });
+        if (verifyResult != null && verifyResult['verified'] == true) {
+          if (!mounted) return;
+          setState(() {
+            _paymentStatus = 'COMPLETED';
+            _message = 'Payment completed successfully!';
+            _isLoading = false;
+          });
 
-        // Start polling for payment status
-        _startPollingPaymentStatus();
+          // Load booking details
+          _fetchBookingDetails();
+          return;
+        } else if (verifyResult != null) {
+          // Payment exists but is not completed
+          if (!mounted) return;
+          setState(() {
+            _paymentStatus =
+                (verifyResult['order_status'] ?? 'PENDING')
+                    .toString()
+                    .toUpperCase();
+            _message = 'Payment is ${verifyResult['order_status']}';
+            _isLoading = false;
+          });
+
+          // Start polling for status updates
+          _startPollingPaymentStatus();
+          return;
+        } else {
+          // Payment not found or error occurred
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            if (!mounted) return;
+            setState(() {
+              _isLoading = false;
+              _message =
+                  'Unable to retrieve payment status. Please check later.';
+              _paymentStatus = 'UNKNOWN';
+            });
+            return;
+          }
+          await Future.delayed(retryDelay);
+        }
+      } catch (e) {
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          if (!mounted) return;
+          setState(() {
+            _isLoading = false;
+            _message = 'Error checking payment status: $e';
+            _paymentStatus = 'ERROR';
+          });
+          return;
+        }
+        await Future.delayed(retryDelay);
       }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _message = 'Error processing payment: $e';
-        _paymentStatus = 'ERROR';
-      });
     }
   }
 
@@ -155,15 +188,21 @@ class PaymentStatusScreenState extends State<PaymentStatusScreen> {
           context,
           listen: false,
         );
-        final payment = await paymentService.getPaymentStatus(widget.paymentId);
+        final verifyResult = await paymentService.verifyOrderByOrderId(
+          widget.orderId,
+        );
 
-        if (payment != null) {
+        if (verifyResult != null) {
+          final status =
+              (verifyResult['order_status'] ?? 'UNKNOWN')
+                  .toString()
+                  .toUpperCase();
           setState(() {
-            _paymentStatus = payment.status ?? 'UNKNOWN';
+            _paymentStatus = status;
           });
 
           // If payment is completed, stop polling
-          if (_paymentStatus == 'COMPLETED') {
+          if (status == 'COMPLETED') {
             timer.cancel();
             setState(() {
               _message = 'Payment completed successfully!';
@@ -183,13 +222,15 @@ class PaymentStatusScreenState extends State<PaymentStatusScreen> {
         context,
         listen: false,
       );
-      // Note: BookingService does not have getBooking method, so this will fail.
-      // You may need to implement getBooking in BookingService or adjust this call.
-      final booking = await bookingService.getBooking(widget.bookingId);
+
+      // Use getBookingWithPayment instead of getBooking
+      final booking = await bookingService.getBookingWithPayment(
+        widget.bookingId,
+      );
 
       if (mounted) {
         setState(() {
-          _booking = booking;
+          _booking = booking.booking;
         });
       }
     } catch (e) {

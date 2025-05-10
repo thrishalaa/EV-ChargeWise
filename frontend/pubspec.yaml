@@ -43,6 +43,7 @@ dependencies:
   geolocator: ^9.0.2
   url_launcher: ^6.1.10
   webview_flutter: ^4.0.7
+  flutter_secure_storage: ^8.0.0
 
 dev_dependencies:
   flutter_test:
