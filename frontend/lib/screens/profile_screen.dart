@@ -115,51 +115,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 32),
-            Expanded(
-              child: Card(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.person),
-                      title: const Text('Account Details'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        // Navigate to account details screen
-                      },
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.electric_car),
-                      title: const Text('My Vehicles'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        // Navigate to vehicles screen
-                      },
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.payment),
-                      title: const Text('Payment Methods'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        // Navigate to payment methods screen
-                      },
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.settings),
-                      title: const Text('Settings'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        // Navigate to settings screen
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
             Center(
               child: ElevatedButton(
                 onPressed: () async {

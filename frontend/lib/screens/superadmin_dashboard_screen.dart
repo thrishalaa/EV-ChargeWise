@@ -3,20 +3,22 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/admin_service.dart';
 import '../models/admin_dashboard.dart';
-import 'admin_stations_screen.dart';
-import 'admin_bookings_screen.dart';
+import 'station_assignment_screen.dart';
+import 'admin_management_screen.dart';
 
-class AdminDashboardScreen extends StatefulWidget {
-  const AdminDashboardScreen({Key? key}) : super(key: key);
+class SuperadminDashboardScreen extends StatefulWidget {
+  const SuperadminDashboardScreen({Key? key}) : super(key: key);
 
   @override
-  _AdminDashboardScreenState createState() => _AdminDashboardScreenState();
+  _SuperadminDashboardScreenState createState() =>
+      _SuperadminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+class _SuperadminDashboardScreenState extends State<SuperadminDashboardScreen> {
   late Future<AdminDashboard> _dashboardFuture;
   int _selectedIndex = 0;
   late String _userRole;
+  late List<Widget> _widgetOptions;
 
   @override
   void initState() {
@@ -27,35 +29,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final authService = Provider.of<AuthService>(context, listen: false);
     _userRole = authService.userRole ?? 'user';
 
-    // Debug print
-    print('Initialized AdminDashboardScreen and fetching dashboard data');
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  List<Map<String, dynamic>> _getNavigationOptions() {
-    return [
-      {'icon': Icons.dashboard, 'label': 'Dashboard'},
-      {'icon': Icons.ev_station, 'label': 'Stations'},
-      {'icon': Icons.book_online, 'label': 'Bookings'},
-    ];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Widget dashboardContent() {
-      return FutureBuilder<AdminDashboard>(
+    _widgetOptions = <Widget>[
+      FutureBuilder<AdminDashboard>(
         future: _dashboardFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            print('Dashboard loading: waiting for data');
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            print('Dashboard error: ${snapshot.error}');
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -84,11 +64,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
             );
           } else if (!snapshot.hasData) {
-            print('Dashboard error: No data available');
             return const Center(child: Text('No data available'));
           }
 
-          print('Dashboard data loaded successfully');
           final dashboard = snapshot.data!;
 
           return Padding(
@@ -117,15 +95,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           );
         },
-      );
-    }
-
-    List<Widget> _widgetOptions = <Widget>[
-      dashboardContent(),
-      const AdminStationsScreen(),
-      const AdminBookingsScreen(),
+      ),
+      const StationAssignmentScreen(),
+      const AdminManagementScreen(),
     ];
+  }
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  List<Map<String, dynamic>> _getNavigationOptions() {
+    return [
+      {'icon': Icons.dashboard, 'label': 'Dashboard'},
+      {'icon': Icons.assignment_ind, 'label': 'Station Assignment'},
+      {'icon': Icons.admin_panel_settings, 'label': 'Admin Management'},
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -148,7 +139,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ],
       ),
-      body: IndexedStack(index: _selectedIndex, children: _widgetOptions),
+      body: _widgetOptions[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items:
             _getNavigationOptions()

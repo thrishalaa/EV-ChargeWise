@@ -15,7 +15,7 @@ class ApiService {
   ApiService() {
     // Use environment variable or default to localhost
     baseUrl =
-        Platform.environment['API_BASE_URL'] ?? 'http://192.168.200.165:8000';
+        Platform.environment['API_BASE_URL'] ?? 'http://192.168.100.9:8000';
   }
 
   Future<String?> get token async {
@@ -41,26 +41,30 @@ class ApiService {
 
     if (requiresAuth) {
       final authToken = await token;
+      print('ApiService _getHeaders authToken: $authToken');
       if (authToken != null) {
         headers['Authorization'] = 'Bearer $authToken';
       }
     }
 
+    print('ApiService _getHeaders headers: $headers');
     return headers;
   }
 
   // Generic HTTP methods
   Future<dynamic> get(
     String endpoint, {
+    Map<String, String>? queryParameters,
     bool requiresAuth = true,
     Duration? timeout,
   }) async {
     try {
+      Uri uri = Uri.parse('$baseUrl$endpoint');
+      if (queryParameters != null && queryParameters.isNotEmpty) {
+        uri = uri.replace(queryParameters: queryParameters);
+      }
       final response = await http
-          .get(
-            Uri.parse('$baseUrl$endpoint'),
-            headers: await _getHeaders(requiresAuth: requiresAuth),
-          )
+          .get(uri, headers: await _getHeaders(requiresAuth: requiresAuth))
           .timeout(timeout ?? defaultTimeout);
       return _processResponse(response);
     } on TimeoutException {
@@ -68,6 +72,7 @@ class ApiService {
         'Request timed out. Server might be slow or unreachable.',
       );
     } catch (e) {
+      print('ApiService GET request to $endpoint failed with error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -92,6 +97,7 @@ class ApiService {
         'Request timed out. Server might be slow or unreachable.',
       );
     } catch (e) {
+      print('ApiService POST request to $endpoint failed with error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -116,6 +122,7 @@ class ApiService {
         'Request timed out. Server might be slow or unreachable.',
       );
     } catch (e) {
+      print('ApiService PUT request to $endpoint failed with error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -138,6 +145,7 @@ class ApiService {
         'Request timed out. Server might be slow or unreachable.',
       );
     } catch (e) {
+      print('ApiService DELETE request to $endpoint failed with error: $e');
       throw Exception('Network error: $e');
     }
   }

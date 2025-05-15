@@ -6,12 +6,20 @@ import 'services/station_service.dart';
 import 'services/route_service.dart';
 import 'services/booking_service.dart';
 import 'services/payment_service.dart';
+import 'services/admin_service.dart';
+import 'services/super_admin_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/bookings_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/admin_bookings_screen.dart';
+import 'screens/admin_dashboard_screen.dart';
+import 'screens/admin_stations_screen.dart';
+import 'screens/admin_management_screen.dart';
+import 'screens/station_assignment_screen.dart';
+import 'screens/superadmin_dashboard_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -19,7 +27,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   // This is where you'd put your actual backend URL
-  static const String apiBaseUrl = 'http://192.168.200.165:8000';
+  static const String apiBaseUrl = 'http://192.168.100.9:8000';
 
   const MyApp({super.key}); // Change this to your actual backend URL
 
@@ -42,6 +50,10 @@ class MyApp extends StatelessWidget {
         Provider<StationService>.value(value: stationService),
         Provider<RouteService>.value(value: routeService),
         Provider<BookingService>.value(value: bookingService),
+        Provider<AdminService>(create: (_) => AdminService(apiService)),
+        Provider<SuperAdminService>(
+          create: (_) => SuperAdminService(apiService),
+        ),
         ChangeNotifierProvider<PaymentService>.value(value: paymentService),
       ],
       child: MaterialApp(
@@ -58,7 +70,7 @@ class MyApp extends StatelessWidget {
         routes: {
           '/':
               (context) => FutureBuilder<bool>(
-                future: authService.isLoggedIn(),
+                future: authService.loadAuthInfo(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Scaffold(
@@ -69,8 +81,10 @@ class MyApp extends StatelessWidget {
                     final role = authService.userRole ?? 'user';
                     print(role);
                     print("HERE IS THE ROLE");
-                    if (role == 'admin' || role == 'super_admin') {
-                      return const HomeScreen();
+                    if (role == 'super_admin') {
+                      return const SuperadminDashboardScreen();
+                    } else if (role == 'admin') {
+                      return const AdminDashboardScreen();
                     } else {
                       return const HomeScreen();
                     }
@@ -85,11 +99,13 @@ class MyApp extends StatelessWidget {
           '/map': (context) => const MapScreen(),
           '/bookings': (context) => const BookingsScreen(),
           '/profile': (context) => const ProfileScreen(),
-          // '/admin-stations': (context) => const AdminStationsScreen(),
-          // '/admin-bookings': (context) => const AdminBookingsScreen(),
-          // '/stations-maintenance':
-          //     (context) => const AdminStationMaintenanceScreen(),
-          // '/admin-dashboard': (context) => const AdminDashboardScreen(),
+          '/admin-stations': (context) => const AdminStationsScreen(),
+          '/admin-bookings': (context) => const AdminBookingsScreen(),
+          '/admin-dashboard': (context) => const AdminDashboardScreen(),
+          '/admin-management': (context) => const AdminManagementScreen(),
+          '/station-assignment': (context) => const StationAssignmentScreen(),
+          '/superadmin-dashboard':
+              (context) => const SuperadminDashboardScreen(),
         },
         initialRoute: '/',
       ),

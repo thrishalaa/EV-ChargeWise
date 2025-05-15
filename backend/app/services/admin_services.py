@@ -124,8 +124,21 @@ class AdminService:
         if status:
             query = query.filter(Booking.status == status)
 
+        # Eagerly load station relationship
+        from sqlalchemy.orm import joinedload
+        query = query.options(joinedload(Booking.station))
+
         # Execute the query and return the results
         bookings = query.all()
+        # Add station_name and ensure status is set
+        for booking in bookings:
+            booking.station_name = booking.station.name if booking.station else None
+            if not booking.status:
+                booking.status = "unknown"
+        # Print response for debugging
+        print("Admin Bookings Response:")
+        for booking in bookings:
+            print(f"Station Name: {booking.station_name}, Status: {booking.status}, Start Time: {booking.start_time}, End Time: {booking.end_time}, Station ID: {booking.station_id}")
         return bookings
     def set_station_maintenance(self, admin: Admin, station_id: int, is_maintenance: bool):
         """Set the maintenance status of a station"""

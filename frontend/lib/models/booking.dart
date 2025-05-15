@@ -1,3 +1,5 @@
+import '../utils/duration_utils.dart';
+
 class Booking {
   final int id;
   final int userId;
@@ -58,22 +60,26 @@ class Booking {
     if (status == 'paid') {
       status = 'completed';
     }
+    DateTime? startTime = parseDateTime(json['start_time']);
+    DateTime? endTime = parseDateTime(json['end_time']);
+    int? durationMinutes;
+    if (startTime != null && endTime != null) {
+      durationMinutes = calculateDurationMinutes(startTime, endTime);
+    } else {
+      durationMinutes = json['duration_minutes'];
+    }
     return Booking(
       id: json['id'],
       userId: json['user_id'],
       stationId: json['station_id'],
       stationName: json['station_name'],
-      startTime:
-          json['start_time'] != null
-              ? DateTime.parse(json['start_time'])
-              : null,
-      endTime:
-          json['end_time'] != null ? DateTime.parse(json['end_time']) : null,
+      startTime: startTime,
+      endTime: endTime,
       bookingDate:
           json['booking_date'] != null
               ? DateTime.parse(json['booking_date'])
               : null,
-      durationMinutes: json['duration_minutes'],
+      durationMinutes: durationMinutes,
       status: status,
       totalCost:
           json['total_cost'] != null

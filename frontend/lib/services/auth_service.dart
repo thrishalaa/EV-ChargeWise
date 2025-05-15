@@ -27,16 +27,18 @@ class AuthService {
 
       if (response != null && response['access_token'] != null) {
         _token = response['access_token'];
+        print("Setting token in ApiService: $_token");
         await apiService.setToken(_token!);
 
         userRole = response['role'] ?? 'user';
+        print("Setting userRole: $userRole");
 
         // Persist userRole securely
         await _storage.write(key: 'userRole', value: userRole);
-        print("HERE IS THE ROLE");
-        print(userRole);
+        print("Persisted userRole in storage");
         return true;
       }
+      print("Login response did not contain access_token");
       return false;
     } catch (e) {
       print('Login error: $e');
@@ -45,12 +47,14 @@ class AuthService {
   }
 
   Future<void> logout() async {
+    print("Logging out: clearing token and userRole");
     _token = null;
     await apiService.clearToken();
 
     // Clear persisted userRole
     await _storage.delete(key: 'userRole');
     userRole = null;
+    print("Logout complete: token and userRole cleared");
   }
 
   Future<bool> isLoggedIn() async {
@@ -62,6 +66,19 @@ class AuthService {
       if (userRole == null) {
         userRole = await _storage.read(key: 'userRole') ?? 'user';
       }
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> loadAuthInfo() async {
+    final token = await apiService.token;
+    print("loadAuthInfo: token = $token");
+    final role = await _storage.read(key: 'userRole');
+    print("loadAuthInfo: role = $role");
+    if (token != null && token.isNotEmpty && role != null) {
+      _token = token;
+      userRole = role;
       return true;
     }
     return false;

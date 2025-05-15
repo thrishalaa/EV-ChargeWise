@@ -43,6 +43,7 @@ def get_user_bookings(
     for booking in bookings:
         booking_dict = booking.__dict__.copy()
         booking_dict['station_name'] = booking.station.name if booking.station else None
+        booking_dict['duration_minutes'] = booking.duration_minutes  # Add duration_minutes dynamically
         booking_responses.append(booking_dict)
     
     return booking_responses
@@ -73,6 +74,7 @@ def get_booking_with_payment(
         
         booking_dict = booking.__dict__.copy()
         booking_dict['station_name'] = booking.station.name if booking.station else None
+        booking_dict['duration_minutes'] = booking.duration_minutes  # Add duration_minutes dynamically
         
         return {
             "booking": booking_dict,

@@ -834,10 +834,10 @@ class BookingsScreenState extends State<BookingsScreen>
                     const SizedBox(height: 16),
                     _buildDetailRow(
                       'Date',
-                      booking.bookingDate != null
+                      booking.startTime != null
                           ? DateFormat(
                             'MMM dd, yyyy',
-                          ).format(booking.bookingDate!)
+                          ).format(booking.startTime!)
                           : 'N/A',
                       Icons.calendar_today,
                     ),
@@ -858,9 +858,12 @@ class BookingsScreenState extends State<BookingsScreen>
                     ),
                     _buildDetailRow(
                       'Payment Status',
-                      bookingWithPayment.payment?.status != null &&
-                              bookingWithPayment.payment!.status!.isNotEmpty
+                      (bookingWithPayment.payment?.status != null &&
+                              bookingWithPayment.payment!.status!.isNotEmpty)
                           ? bookingWithPayment.payment!.status!
+                          : (booking.status != null &&
+                              booking.status!.toLowerCase() == 'completed')
+                          ? 'Paid'
                           : 'Not paid',
                       Icons.payment,
                     ),
@@ -1253,10 +1256,10 @@ class BookingsScreenState extends State<BookingsScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      booking.bookingDate != null
+                      booking.startTime != null
                           ? DateFormat(
                             'MMM dd, yyyy • hh:mm a',
-                          ).format(booking.bookingDate!)
+                          ).format(booking.startTime!)
                           : 'Date not available',
                       style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       overflow: TextOverflow.ellipsis,

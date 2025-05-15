@@ -20,6 +20,32 @@ class _AdminStationsScreenState extends State<AdminStationsScreen> {
     _stationsFuture = adminService.getAdminStations();
   }
 
+  Future<void> _toggleMaintenance(Station station) async {
+    final adminService = Provider.of<AdminService>(context, listen: false);
+    final newStatus = !station.maintenance;
+    try {
+      await adminService.setStationMaintenance(station.id, newStatus);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Station "${station.name}" maintenance status set to ${newStatus ? 'ON' : 'OFF'}',
+          ),
+          backgroundColor: newStatus ? Colors.orange : Colors.green,
+        ),
+      );
+      setState(() {
+        _stationsFuture = adminService.getAdminStations();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update maintenance status: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,13 +67,35 @@ class _AdminStationsScreenState extends State<AdminStationsScreen> {
             itemCount: stations.length,
             itemBuilder: (context, index) {
               final station = stations[index];
-              return ListTile(
-                title: Text(station.name),
-                subtitle: Text('Location: \${station.location ?? "Unknown"}'),
-                trailing: Icon(Icons.ev_station),
-                onTap: () {
-                  // TODO: Navigate to station maintenance screen or details
-                },
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                child: ListTile(
+                  title: Text(station.name),
+                  // Location display removed as requested
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.ev_station,
+                        color:
+                            station.isAvailable
+                                ? Colors.green
+                                : station.maintenance
+                                ? Colors.orange
+                                : Colors.red,
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () => _toggleMaintenance(station),
+                        child: Text(
+                          station.maintenance
+                              ? 'End Maintenance'
+                              : 'Maintenance',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               );
             },
           );

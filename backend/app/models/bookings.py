@@ -22,3 +22,7 @@ class Booking(Base):
     user = relationship("User", back_populates="bookings")
     station = relationship("Station", back_populates="bookings")
     payment = relationship("Payment", back_populates="booking", uselist=False)
+
+    @property
+    def duration_minutes(self) -> int:
+        return int((self.end_time - self.start_time).total_seconds() / 60)

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import 'admin_dashboard_screen.dart';
 import 'home_screen.dart';
+import 'superadmin_dashboard_screen.dart';
 import '../services/payment_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -171,9 +173,24 @@ class _LoginScreenState extends State<LoginScreen> {
             paymentService.setAuthToken(authService.token!);
           }
 
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => HomeScreen()),
-          );
+          final role = authService.userRole ?? 'user';
+          if (role == 'super_admin') {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const SuperadminDashboardScreen(),
+              ),
+            );
+          } else if (role == 'admin') {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const AdminDashboardScreen(),
+              ),
+            );
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          }
         } else {
           setState(() {
             _errorMessage = 'Login failed. Please check your credentials.';
