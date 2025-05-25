@@ -53,9 +53,32 @@ class AdminService {
     }
   }
 
-  Future<void> setStationMaintenance(int stationId, bool isMaintenance) async {
-    final endpoint =
-        '/admin/admin/stations/$stationId/maintenance?is_maintenance=$isMaintenance';
-    await _apiService.post(endpoint);
+  Future<Map<String, dynamic>> setStationMaintenance(
+    int stationId,
+    bool isMaintenance,
+  ) async {
+    try {
+      print(
+        'AdminService: Setting maintenance for station $stationId to $isMaintenance',
+      );
+
+      // Use POST method as defined in your backend
+      final response = await _apiService.post(
+        '/admin/admin/stations/$stationId/maintenance',
+        queryParameters: {'is_maintenance': isMaintenance.toString()},
+      );
+
+      print('AdminService: Maintenance update response: $response');
+
+      // Return the response for additional handling if needed
+      if (response is Map<String, dynamic>) {
+        return response;
+      } else {
+        return {'message': 'Maintenance status updated successfully'};
+      }
+    } catch (e) {
+      print('AdminService: Error updating maintenance status: $e');
+      rethrow; // Re-throw the error so the UI can handle it
+    }
   }
 }

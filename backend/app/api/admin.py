@@ -32,7 +32,7 @@ async def list_all_admins(
     db: Session = Depends(get_db)
 ):
     """List all admins (super admin only)"""
-    admins = db.query(Admin).offset(skip).limit(limit).all()
+    admins = db.query(Admin).filter(Admin.is_super_admin == False).offset(skip).limit(limit).all()
     return admins
 
 @router.put("/super-admin/admins/{admin_id}", response_model=AdminResponse)

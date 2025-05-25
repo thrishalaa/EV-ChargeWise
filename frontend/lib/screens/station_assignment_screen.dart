@@ -122,6 +122,9 @@ class _StationAssignmentScreenState extends State<StationAssignmentScreen> {
                   icon: const Icon(Icons.refresh),
                   onPressed: _isLoading ? null : _refreshData,
                   tooltip: 'Refresh Data',
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                  iconSize: 20,
                 ),
               ],
             ),
@@ -267,34 +270,68 @@ class _StationAssignmentScreenState extends State<StationAssignmentScreen> {
               horizontal: 12.0,
               vertical: 8.0,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Available Stations',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-                Row(
-                  children: [
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      onPressed: _selectAllStations,
-                      icon: const Icon(Icons.select_all, size: 18),
-                      label: const Text('All'),
-                    ),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      onPressed: _clearSelection,
-                      icon: const Icon(Icons.clear_all, size: 18),
-                      label: const Text('Clear'),
-                    ),
-                  ],
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isSmallScreen = constraints.maxWidth < 400;
+
+                return isSmallScreen
+                    ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Available Stations',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            _buildActionButton(
+                              onPressed: _selectAllStations,
+                              icon: Icons.select_all,
+                              label: 'All',
+                            ),
+                            const SizedBox(width: 8),
+                            _buildActionButton(
+                              onPressed: _clearSelection,
+                              icon: Icons.clear_all,
+                              label: 'Clear',
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                    : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Available Stations',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            _buildActionButton(
+                              onPressed: _selectAllStations,
+                              icon: Icons.select_all,
+                              label: 'All',
+                            ),
+                            const SizedBox(width: 8),
+                            _buildActionButton(
+                              onPressed: _clearSelection,
+                              icon: Icons.clear_all,
+                              label: 'Clear',
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+              },
             ),
           ),
         ),
@@ -321,15 +358,28 @@ class _StationAssignmentScreenState extends State<StationAssignmentScreen> {
                 builder: (context, constraints) {
                   // Calculate item width based on screen size
                   final double width = constraints.maxWidth;
-                  final int crossAxisCount = width > 600 ? 3 : 2;
+
+                  // Adjust cross axis count based on width
+                  int crossAxisCount;
+                  double childAspectRatio;
+
+                  if (width > 600) {
+                    crossAxisCount = 3;
+                    childAspectRatio = 1.8;
+                  } else if (width > 400) {
+                    crossAxisCount = 2;
+                    childAspectRatio = 1.6;
+                  } else {
+                    crossAxisCount = 1;
+                    childAspectRatio = 2.2;
+                  }
 
                   return GridView.builder(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 8,
                       mainAxisSpacing: 8,
-                      // Adjust aspect ratio for better fit
-                      childAspectRatio: width > 600 ? 1.8 : 1.6,
+                      childAspectRatio: childAspectRatio,
                     ),
                     itemCount: stations.length,
                     itemBuilder: (context, index) {
@@ -370,6 +420,7 @@ class _StationAssignmentScreenState extends State<StationAssignmentScreen> {
                             padding: const EdgeInsets.all(8.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Row(
                                   children: [
@@ -420,17 +471,16 @@ class _StationAssignmentScreenState extends State<StationAssignmentScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 2),
-                                Expanded(
-                                  child: Text(
-                                    '${station.latitude}, ${station.longitude}',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 10,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                Text(
+                                  '${station.latitude}, ${station.longitude}',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 10,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
+                                const Spacer(),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 6,
@@ -481,6 +531,23 @@ class _StationAssignmentScreenState extends State<StationAssignmentScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String label,
+  }) {
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      onPressed: onPressed,
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
     );
   }
 

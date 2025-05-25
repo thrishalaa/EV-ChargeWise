@@ -92,7 +92,7 @@ class Station {
       latitude: json['latitude'],
       longitude: json['longitude'],
       isAvailable: json['is_available'],
-      maintenance: json['maintenance'] ?? false,
+      maintenance: json['is_maintenance'] ?? false,
       chargingConfigs: configs,
       distance: json['distance']?.toDouble(),
       bookings: bookings,

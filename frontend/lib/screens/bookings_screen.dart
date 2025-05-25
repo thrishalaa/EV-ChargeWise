@@ -29,6 +29,14 @@ class BookingsScreenState extends State<BookingsScreen>
   Position? _currentPosition;
   late TabController _tabController;
 
+  // Conversion rate from USD to INR
+  static const double usdToInrRate = 82.0;
+
+  // Function to convert USD amount to INR
+  double convertUsdToInr(double usdAmount) {
+    return usdAmount * usdToInrRate;
+  }
+
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -211,7 +219,8 @@ class BookingsScreenState extends State<BookingsScreen>
       if (selectedDate != null && selectedTime != null) {
         setState(() {
           // Fix: Calculate the updated cost correctly based on the duration and price per kWh
-          cost = (durationMinutes / 60) * pricePerKwh;
+          double costInUsd = (durationMinutes / 60) * pricePerKwh;
+          cost = convertUsdToInr(costInUsd);
         });
       }
     }
@@ -381,12 +390,15 @@ class BookingsScreenState extends State<BookingsScreen>
                             'Estimated Cost:',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          Text(
-                            '₹${cost.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                              color: Colors.green,
+                          Flexible(
+                            child: Text(
+                              '₹${cost.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                color: Colors.green,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -870,7 +882,8 @@ class BookingsScreenState extends State<BookingsScreen>
                     if (bookingWithPayment.payment != null)
                       _buildDetailRow(
                         'Amount',
-                        '${bookingWithPayment.payment?.amount} ${bookingWithPayment.payment?.currency}',
+                        // Convert USD to INR and display with rupee symbol
+                        '\u20B9${convertUsdToInr(bookingWithPayment.payment?.amount ?? 0).toStringAsFixed(2)}',
                         Icons.currency_rupee,
                       ),
                   ],

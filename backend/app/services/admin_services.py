@@ -140,8 +140,10 @@ class AdminService:
         for booking in bookings:
             print(f"Station Name: {booking.station_name}, Status: {booking.status}, Start Time: {booking.start_time}, End Time: {booking.end_time}, Station ID: {booking.station_id}")
         return bookings
+    
     def set_station_maintenance(self, admin: Admin, station_id: int, is_maintenance: bool):
         """Set the maintenance status of a station"""
+        print(f"Backend: Setting maintenance for station {station_id} to {is_maintenance}")
         # Ensure the admin has access to the station
         station = self.db.query(Station).filter(Station.id == station_id).first()
         if not station:
@@ -153,6 +155,7 @@ class AdminService:
             station.is_maintenance = is_maintenance
             self.db.commit()
             self.db.refresh(station)
+            print(f"Backend: Station {station_id} maintenance status updated to {is_maintenance}")
             return {"message": f"Station {station_id} maintenance status updated to {is_maintenance}"}
         
         raise HTTPException(status_code=403, detail="Admin does not have access to this station")

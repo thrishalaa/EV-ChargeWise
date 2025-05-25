@@ -88,7 +88,8 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
 
     return CircleAvatar(
       backgroundColor: iconColor.withOpacity(0.2),
-      child: Icon(iconData, color: iconColor),
+      radius: 16, // Consistent size
+      child: Icon(iconData, color: iconColor, size: 16),
     );
   }
 
@@ -116,86 +117,88 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
               borderRadius: BorderRadius.circular(16),
             ),
             elevation: 8,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _getStatusIcon(booking.status),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'Booking Details',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+            child: SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _getStatusIcon(booking.status),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            'Booking Details',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.of(context).pop(),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 24),
-                  _buildDetailRow(
-                    'Station',
-                    booking.stationName ?? 'Unknown',
-                    Icons.ev_station,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDetailRow(
-                    'Status',
-                    booking.status ?? 'Unknown',
-                    Icons.info_outline,
-                    valueColor: _getStatusColor(booking.status),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDetailRow(
-                    'Start Time',
-                    booking.startTime != null
-                        ? DateFormat(
-                          'MMM dd, yyyy - h:mm a',
-                        ).format(booking.startTime!.toLocal())
-                        : 'N/A',
-                    Icons.access_time,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDetailRow(
-                    'End Time',
-                    booking.endTime != null
-                        ? DateFormat(
-                          'MMM dd, yyyy - h:mm a',
-                        ).format(booking.endTime!.toLocal())
-                        : 'N/A',
-                    Icons.access_alarm,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDetailRow(
-                    'Duration',
-                    '${booking.durationMinutes ?? 'N/A'} minutes',
-                    Icons.timer,
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.of(context).pop(),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Close'),
+                      ],
                     ),
-                  ),
-                ],
+                    const Divider(height: 24),
+                    _buildDetailRow(
+                      'Station',
+                      booking.stationName ?? 'Unknown',
+                      Icons.ev_station,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRow(
+                      'Status',
+                      booking.status ?? 'Unknown',
+                      Icons.info_outline,
+                      valueColor: _getStatusColor(booking.status),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRow(
+                      'Start Time',
+                      booking.startTime != null
+                          ? DateFormat(
+                            'MMM dd, yyyy - h:mm a',
+                          ).format(booking.startTime!.toLocal())
+                          : 'N/A',
+                      Icons.access_time,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRow(
+                      'End Time',
+                      booking.endTime != null
+                          ? DateFormat(
+                            'MMM dd, yyyy - h:mm a',
+                          ).format(booking.endTime!.toLocal())
+                          : 'N/A',
+                      Icons.access_alarm,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRow(
+                      'Duration',
+                      '${booking.durationMinutes ?? 'N/A'} minutes',
+                      Icons.timer,
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Close'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -229,6 +232,7 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                   fontWeight: FontWeight.w500,
                   color: valueColor,
                 ),
+                softWrap: true,
               ),
             ],
           ),
@@ -305,6 +309,8 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                   icon: const Icon(Icons.close, size: 20),
                   onPressed: _clearStationFilter,
                   tooltip: 'Clear station filter',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
             ],
           ),
@@ -346,13 +352,16 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          '${snapshot.error}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            '${snapshot.error}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
@@ -413,7 +422,7 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _getStatusIcon(booking.status),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -428,52 +437,28 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                                       maxLines: 1,
                                     ),
                                     const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.access_time,
-                                          size: 14,
-                                          color: Colors.grey[600],
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          booking.startTime != null
-                                              ? DateFormat(
-                                                'MMM dd, yyyy - h:mm a',
-                                              ).format(
-                                                booking.startTime!.toLocal(),
-                                              )
-                                              : 'Date not available',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 13,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _getStatusColor(
-                                          booking.status,
-                                        ).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        booking.status ?? 'Unknown',
-                                        style: TextStyle(
-                                          color: _getStatusColor(
-                                            booking.status,
-                                          ),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
+                                    LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        return constraints.maxWidth < 180
+                                            ? Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                _buildTimeRow(booking),
+                                                const SizedBox(height: 4),
+                                                _buildStatusBadge(booking),
+                                              ],
+                                            )
+                                            : Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _buildTimeRow(booking),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                _buildStatusBadge(booking),
+                                              ],
+                                            );
+                                      },
                                     ),
                                   ],
                                 ),
@@ -483,6 +468,7 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                                 onPressed: () => _showBookingDetails(booking),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
+                                iconSize: 20,
                               ),
                             ],
                           ),
@@ -495,6 +481,45 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTimeRow(Booking booking) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            booking.startTime != null
+                ? DateFormat(
+                  'MMM dd, yyyy - h:mm a',
+                ).format(booking.startTime!.toLocal())
+                : 'Date not available',
+            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusBadge(Booking booking) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: _getStatusColor(booking.status).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        booking.status ?? 'Unknown',
+        style: TextStyle(
+          color: _getStatusColor(booking.status),
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
       ),
     );
   }

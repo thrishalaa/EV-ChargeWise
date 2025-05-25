@@ -25,7 +25,10 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
       context,
       listen: false,
     );
-    _adminsFuture = superAdminService.getAllAdmins();
+    _adminsFuture = superAdminService.getAllAdmins().then((admins) {
+      // Filter out super admins immediately after fetching
+      return admins.where((admin) => !admin.isSuperAdmin).toList();
+    });
   }
 
   Future<void> _refreshAdmins() async {
@@ -36,52 +39,58 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        FutureBuilder<List<Admin>>(
-          future: _adminsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Error: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _refreshAdmins,
-                      child: const Text('Try Again'),
-                    ),
-                  ],
-                ),
-              );
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('No admins found'));
-            }
-
-            final admins = snapshot.data!;
-            return ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: admins.length,
-              itemBuilder: (context, index) {
-                final admin = admins[index];
-                return _buildAdminCard(admin);
-              },
-            );
-          },
+    return Scaffold(
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(
+          bottom: 56.0,
+        ), // To place above bottom nav bar
+        child: FloatingActionButton(
+          onPressed: () => _showAddAdminDialog(context),
+          child: const Icon(Icons.add),
+          tooltip: 'Create New Admin',
         ),
-      ],
+      ),
+      body: FutureBuilder<List<Admin>>(
+        future: _adminsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _refreshAdmins,
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            );
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No admins found'));
+          }
+
+          final admins = snapshot.data!;
+          final filteredAdmins =
+              admins.where((admin) => !admin.isSuperAdmin).toList();
+          return ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: filteredAdmins.length,
+            itemBuilder: (context, index) {
+              final admin = filteredAdmins[index];
+              return _buildAdminCard(admin);
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -149,11 +158,12 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                           : Theme.of(context).primaryColor,
                 ),
                 const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () => _showEditAdminDialog(context, admin),
-                  tooltip: 'Edit Admin',
-                ),
+                if (!admin.isSuperAdmin)
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showEditAdminDialog(context, admin),
+                    tooltip: 'Edit Admin',
+                  ),
               ],
             ),
           ],

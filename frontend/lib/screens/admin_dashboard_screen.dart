@@ -35,6 +35,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     setState(() {
       _selectedIndex = index;
     });
+
+    // Refresh dashboard when switching to dashboard tab
+    if (index == 0) {
+      _refreshDashboard();
+    }
+  }
+
+  void _refreshDashboard() {
+    setState(() {
+      final adminService = Provider.of<AdminService>(context, listen: false);
+      _dashboardFuture = adminService.getAdminDashboard();
+      print('Dashboard refreshed');
+    });
   }
 
   List<Map<String, dynamic>> _getNavigationOptions() {
@@ -69,15 +82,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        final adminService = Provider.of<AdminService>(
-                          context,
-                          listen: false,
-                        );
-                        _dashboardFuture = adminService.getAdminDashboard();
-                      });
-                    },
+                    onPressed: _refreshDashboard,
                     child: const Text('Try Again'),
                   ),
                 ],
@@ -91,29 +96,37 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           print('Dashboard data loaded successfully');
           final dashboard = snapshot.data!;
 
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ListView(
-              children: [
-                _buildStatCard('Total Stations', dashboard.total_stations),
-                _buildStatCard('Active Stations', dashboard.active_stations),
-                _buildStatCard(
-                  'Stations in Maintenance',
-                  dashboard.maintenance_stations,
-                ),
-                _buildStatCard('Total Bookings', dashboard.total_bookings),
-                _buildStatCard(
-                  'Upcoming Bookings',
-                  dashboard.upcoming_bookings,
-                ),
-                _buildStatCardString(
-                  'Total Revenue',
-                  dashboard.total_revenue != null
-                      ? '\$${dashboard.total_revenue!.toStringAsFixed(2)}'
-                      : 'N/A',
-                ),
-                const SizedBox(height: 24),
-              ],
+          return RefreshIndicator(
+            onRefresh: () async {
+              _refreshDashboard();
+              // Wait for the future to complete
+              await _dashboardFuture;
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  _buildStatCard('Total Stations', dashboard.total_stations),
+                  _buildStatCard('Active Stations', dashboard.active_stations),
+                  _buildStatCard(
+                    'Stations in Maintenance',
+                    dashboard.maintenance_stations,
+                  ),
+                  _buildStatCard('Total Bookings', dashboard.total_bookings),
+                  _buildStatCard(
+                    'Upcoming Bookings',
+                    dashboard.upcoming_bookings,
+                  ),
+                  _buildStatCardString(
+                    'Total Revenue',
+                    dashboard.total_revenue != null
+                        ? '\$${dashboard.total_revenue!.toStringAsFixed(2)}'
+                        : 'N/A',
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           );
         },
@@ -122,7 +135,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     List<Widget> _widgetOptions = <Widget>[
       dashboardContent(),
-      const AdminStationsScreen(),
+      AdminStationsScreen(onMaintenanceChanged: _refreshDashboard),
       const AdminBookingsScreen(),
     ];
 

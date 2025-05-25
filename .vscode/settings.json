@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
         "./backend/app/auth"
-    ]
+    ],
+    "cmake.sourceDirectory": "E:/EV-ChargeWise-before_docker/EV-ChargeWise-before_docker/frontend/linux"
 }

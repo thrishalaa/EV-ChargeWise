@@ -80,13 +80,18 @@ class ApiService {
   Future<dynamic> post(
     String endpoint, {
     dynamic body,
+    Map<String, String>? queryParameters,
     bool requiresAuth = true,
     Duration? timeout,
   }) async {
     try {
+      Uri uri = Uri.parse('$baseUrl$endpoint');
+      if (queryParameters != null && queryParameters.isNotEmpty) {
+        uri = uri.replace(queryParameters: queryParameters);
+      }
       final response = await http
           .post(
-            Uri.parse('$baseUrl$endpoint'),
+            uri,
             headers: await _getHeaders(requiresAuth: requiresAuth),
             body: body != null ? jsonEncode(body) : null,
           )

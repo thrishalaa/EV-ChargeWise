@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: .
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+# Purpose:
+# This docker-compose file defines a service for the frontend Flutter web app.
+# It builds the Docker image using the Dockerfile in the frontend directory,
+# and serves the app via nginx on port 80 inside the container.
+# The container's port 80 is mapped to host port 8080 to avoid conflicts with backend on port 8000.
+# Docker Compose simplifies running and managing this containerized frontend service,
+# allowing easy startup, shutdown, and scaling if needed.
