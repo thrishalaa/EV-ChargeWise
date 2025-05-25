@@ -27,7 +27,7 @@ WORKDIR /backend
 COPY requirements.txt .
 
 # Install dependencies
-RUN pip install --upgrade pip && pip install -r /backend/requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the entire project
 COPY . /backend/
