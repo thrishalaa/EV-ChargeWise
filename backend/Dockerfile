@@ -24,13 +24,13 @@ FROM python:3.11-slim
 WORKDIR /backend
 
 # Copy requirements.txt first for better caching
-COPY requirements.txt .
+COPY requirements.txt /backend/requirements.txt
 
 # Install dependencies
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install -r /backend/requirements.txt
 
 # Copy the entire project
-COPY . .
+COPY . /backend/
 
 # Add backend to PYTHONPATH
 ENV PYTHONPATH=/backend:$PYTHONPATH
