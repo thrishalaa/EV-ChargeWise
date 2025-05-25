@@ -30,7 +30,7 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the entire project
-COPY . /backend/
+COPY . .
 
 # Add backend to PYTHONPATH
 ENV PYTHONPATH=/backend:$PYTHONPATH
