@@ -24,7 +24,7 @@ FROM python:3.11-slim
 WORKDIR /backend
 
 # Copy requirements.txt first for better caching
-COPY requirements.txt /backend/requirements.txt
+COPY requirements.txt .
 
 # Install dependencies
 RUN pip install --upgrade pip && pip install -r /backend/requirements.txt
