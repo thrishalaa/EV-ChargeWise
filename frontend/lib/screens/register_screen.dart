@@ -173,6 +173,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final success = await authService.register(
           _username,
           _email,
+          _phoneNumber,
           _password,
         );
 

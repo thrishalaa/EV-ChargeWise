@@ -15,7 +15,7 @@ class ApiService {
   ApiService() {
     // Use environment variable or default to localhost
     baseUrl =
-        Platform.environment['API_BASE_URL'] ?? 'http://192.168.100.9:8000';
+        Platform.environment['API_BASE_URL'] ?? 'http://192.168.100.6:8000';
   }
 
   Future<String?> get token async {

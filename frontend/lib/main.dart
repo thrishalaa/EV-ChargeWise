@@ -27,7 +27,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   // This is where you'd put your actual backend URL
-  static const String apiBaseUrl = 'http://192.168.100.9:8000';
+  static const String apiBaseUrl = 'http://192.168.100.6:8000';
 
   const MyApp({super.key}); // Change this to your actual backend URL
 

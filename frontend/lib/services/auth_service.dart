@@ -84,11 +84,21 @@ class AuthService {
     return false;
   }
 
-  Future<bool> register(String username, String email, String password) async {
+  Future<bool> register(
+    String username,
+    String email,
+    String phone_number,
+    String password,
+  ) async {
     try {
       final response = await apiService.post(
-        '/auth/register',
-        body: {'username': username, 'email': email, 'password': password},
+        '/users/register',
+        body: {
+          'username': username,
+          'email': email,
+          'phone_number': phone_number,
+          'password': password,
+        },
         timeout: authTimeout, // Add timeout to register method
       );
       return true;

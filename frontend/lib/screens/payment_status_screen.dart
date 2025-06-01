@@ -33,6 +33,13 @@ class PaymentStatusScreenState extends State<PaymentStatusScreen> {
   int _pollAttempts = 0;
   final int _maxPollAttempts = 5;
 
+  static const double usdToInrRate = 82.0;
+
+  // Function to convert USD amount to INR
+  double convertUsdToInr(double usdAmount) {
+    return usdAmount * usdToInrRate;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -326,8 +333,8 @@ class PaymentStatusScreenState extends State<PaymentStatusScreen> {
             ),
             _buildDetailRow(
               'Date',
-              _booking!.bookingDate != null
-                  ? DateFormat('MMM dd, yyyy').format(_booking!.bookingDate!)
+              _booking!.startTime != null
+                  ? DateFormat('MMM dd, yyyy').format(_booking!.startTime!)
                   : 'N/A',
             ),
             _buildDetailRow(
