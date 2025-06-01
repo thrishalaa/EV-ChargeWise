@@ -438,24 +438,28 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    width: 160,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        await Geolocator.openLocationSettings();
-                      },
-                      child: const Text('Turn On Location Services'),
-                    ),
-                  ),
                   SizedBox(
                     width: 100,
                     child: ElevatedButton(
                       onPressed: _determinePosition,
                       child: const Text('Retry'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: 240,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        await Geolocator.openLocationSettings();
+                      },
+                      child: const Center(
+                        child: Text('Turn On Location Services'),
+                      ),
                     ),
                   ),
                 ],

@@ -387,7 +387,7 @@ class BookingsScreenState extends State<BookingsScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Estimated Cost:',
+                            'Amount:',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Flexible(
